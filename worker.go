@@ -55,23 +55,22 @@ func (w *Worker) Run(ctx context.Context) {
 		panic(err)
 	}
 
-	topicName := fmt.Sprintf(topicNameTemplate, hostname, w.WorkerId, t)
+	topicName := "oralb/seagate/181818/v1/sessions"
 	subscriberClientId := fmt.Sprintf(subscriberClientIdTemplate, hostname, w.WorkerId, t)
 	publisherClientId := fmt.Sprintf(publisherClientIdTemplate, hostname, w.WorkerId, t)
 
 	verboseLogger.Printf("[%d] topic=%s subscriberClientId=%s publisherClientId=%s\n", cid, topicName, subscriberClientId, publisherClientId)
 
-	publisherOptions := mqtt.NewClientOptions().SetClientID(publisherClientId).SetUsername(w.Username).SetPassword(w.Password).AddBroker(w.BrokerUrl)
+	// Create Certificate Config File
+	tlsConfig := NewTLSConfig()
+
+	publisherOptions := mqtt.NewClientOptions().SetClientID("seagate_181818").SetMaxReconnectInterval(1 * time.Second).SetTLSConfig(tlsConfig).AddBroker(w.BrokerUrl)
 
 	if w.SkipTLSVerification {
 		setSkipTLS(publisherOptions)
 	}
 
-	subscriberOptions := mqtt.NewClientOptions().SetClientID(subscriberClientId).SetUsername(w.Username).SetPassword(w.Password).AddBroker(w.BrokerUrl)
-
-	if w.SkipTLSVerification {
-		setSkipTLS(subscriberOptions)
-	}
+	subscriberOptions := mqtt.NewClientOptions().SetClientID("seagate_181818").SetMaxReconnectInterval(1 * time.Second).SetTLSConfig(tlsConfig).AddBroker(w.BrokerUrl)
 
 	subscriberOptions.SetDefaultPublishHandler(func(client mqtt.Client, msg mqtt.Message) {
 		queue <- [2]string{msg.Topic(), string(msg.Payload())}

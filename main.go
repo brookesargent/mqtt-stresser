@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -63,6 +65,34 @@ type Result struct {
 type TimeoutError interface {
 	Timeout() bool
 	Error() string
+}
+
+func NewTLSConfig() *tls.Config {
+	// Device Simulator Certificate Paths
+	certificatePath := "certs/cert.pem"
+	privateKeyPath := "certs/key.pem"
+	rootCAPath := "certs/root.pem"
+
+	certpool := x509.NewCertPool()
+	pemCerts, err := ioutil.ReadFile(rootCAPath)
+	if err == nil {
+		certpool.AppendCertsFromPEM(pemCerts)
+	}
+
+	// Import client certificate/key pair
+	cert, err := tls.LoadX509KeyPair(certificatePath, privateKeyPath)
+	if err != nil {
+		panic(err)
+	}
+
+	return &tls.Config{
+		RootCAs:    certpool,
+		ClientAuth: tls.NoClientCert,
+		ClientCAs:  nil,
+		//nolint:gosec
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{cert},
+	}
 }
 
 func parseQosLevels(qos int, role string) (byte, error) {
